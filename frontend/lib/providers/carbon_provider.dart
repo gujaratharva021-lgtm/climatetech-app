@@ -84,8 +84,9 @@ class CarbonNotifier extends StateNotifier<CarbonState> {
         options: results[3] as Map<String, List<CarbonSubTypeOption>>,
       );
     } catch (e) {
-      if (requestId != _dataRequestId) return;
-      state = state.copyWith(status: CarbonStatus.error, errorMessage: e.toString());
+        print('CARBON LOAD ERROR: $e');
+        if (requestId != _dataRequestId) return;
+        state = state.copyWith(status: CarbonStatus.error, errorMessage: e.toString());
     }
   }
 
