@@ -13,6 +13,10 @@ import '../screens/help/help_screen.dart';
 import '../screens/challenges/challenges_screen.dart';
 import '../screens/challenges/leaderboard_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/energy_trade/commodity_listing_detail_screen.dart';
+import '../screens/energy_trade/energy_trade_home_screen.dart';
+import '../screens/energy_trade/my_commodity_listings_screen.dart';
+import '../screens/energy_trade/post_commodity_listing_screen.dart';
 import '../screens/forecast/forecast_screen.dart';
 import '../screens/insights/insights_screen.dart';
 import '../screens/map/map_screen.dart';
@@ -75,6 +79,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id'];
           if (id == null || id.isEmpty) return const _RouteNotFoundScreen();
           return ListingDetailScreen(listingId: id);
+        },
+      ),
+      GoRoute(path: '/energy-trade', builder: (context, state) => const EnergyTradeHomeScreen()),
+      GoRoute(path: '/energy-trade/post', builder: (context, state) => const PostCommodityListingScreen()),
+      GoRoute(path: '/energy-trade/my-listings', builder: (context, state) => const MyCommodityListingsScreen()),
+      GoRoute(
+        path: '/energy-trade/listings/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          if (id == null || id.isEmpty) return const _RouteNotFoundScreen();
+          return CommodityListingDetailScreen(listingId: id);
         },
       ),
       GoRoute(path: '/news', builder: (context, state) => const NewsScreen()),

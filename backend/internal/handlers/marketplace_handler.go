@@ -50,6 +50,12 @@ type applySellerRequest struct {
 func (h *MarketplaceHandler) ApplySeller(c *gin.Context) {
 	userID := c.MustGet("user_id").(uuid.UUID)
 
+	var req applySellerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.Fail(c, http.StatusBadRequest, "invalid request payload", err)
+		return
+	}
+
 	err := database.DB.Where("user_id = ?", userID).First(&models.Seller{}).Error
 	if err == nil {
 		utils.Fail(c, http.StatusConflict, "you already have a seller profile", nil)
@@ -57,12 +63,6 @@ func (h *MarketplaceHandler) ApplySeller(c *gin.Context) {
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.Fail(c, http.StatusInternalServerError, "failed to check existing seller profile", err)
-		return
-	}
-
-	var req applySellerRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.Fail(c, http.StatusBadRequest, "invalid request payload", err)
 		return
 	}
 
@@ -211,6 +211,15 @@ type createListingRequest struct {
 	ImageURLs   []string `json:"image_urls" binding:"required,min=1,max=10,dive,required,url"`
 	Condition   string   `json:"condition"`
 	Location    string   `json:"location" binding:"omitempty,max=150"`
+
+	// CommodityType is omitempty because plenty of listings (generic
+	// classified ads) aren't energy commodities at all; it defaults to
+	// "other" below rather than being required on every listing.
+	CommodityType string  `json:"commodity_type" binding:"omitempty,oneof=coal biomass coke carbon_credit other"`
+	Quantity      float64 `json:"quantity" binding:"omitempty,gte=0"`
+	Unit          string  `json:"unit" binding:"omitempty,max=20"`
+	MinOrderQty   float64 `json:"min_order_qty" binding:"omitempty,gte=0"`
+	Grade         string  `json:"grade" binding:"omitempty,max=500"`
 }
 
 // CreateListing lets a user with an approved seller profile post a new listing.
@@ -239,16 +248,30 @@ func (h *MarketplaceHandler) CreateListing(c *gin.Context) {
 		condition = models.ConditionNew
 	}
 
+	commodityType := models.CommodityType(req.CommodityType)
+	if commodityType == "" {
+		commodityType = models.CommodityOther
+	}
+	if req.MinOrderQty > req.Quantity && req.Quantity > 0 {
+		utils.Fail(c, http.StatusBadRequest, "min_order_qty cannot exceed quantity", nil)
+		return
+	}
+
 	listing := models.Listing{
-		SellerID:    seller.ID,
-		Title:       req.Title,
-		Description: req.Description,
-		Price:       req.Price,
-		Category:    req.Category,
-		ImageURLs:   models.StringArray(req.ImageURLs),
-		Condition:   condition,
-		Location:    req.Location,
-		IsActive:    true,
+		SellerID:      seller.ID,
+		Title:         req.Title,
+		Description:   req.Description,
+		Price:         req.Price,
+		Category:      req.Category,
+		ImageURLs:     models.StringArray(req.ImageURLs),
+		Condition:     condition,
+		Location:      req.Location,
+		IsActive:      true,
+		CommodityType: commodityType,
+		Quantity:      req.Quantity,
+		Unit:          req.Unit,
+		MinOrderQty:   req.MinOrderQty,
+		Grade:         req.Grade,
 	}
 	if err := database.DB.Create(&listing).Error; err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to create listing", err)
@@ -267,6 +290,12 @@ type adminCreateListingRequest struct {
 	ImageURLs   []string `json:"image_urls" binding:"required,min=1,max=10,dive,required,url"`
 	Condition   string   `json:"condition"`
 	Location    string   `json:"location" binding:"omitempty,max=150"`
+
+	CommodityType string  `json:"commodity_type" binding:"omitempty,oneof=coal biomass coke carbon_credit other"`
+	Quantity      float64 `json:"quantity" binding:"omitempty,gte=0"`
+	Unit          string  `json:"unit" binding:"omitempty,max=20"`
+	MinOrderQty   float64 `json:"min_order_qty" binding:"omitempty,gte=0"`
+	Grade         string  `json:"grade" binding:"omitempty,max=500"`
 }
 
 // AdminCreateListing lets an admin create a listing directly on behalf of
@@ -303,16 +332,30 @@ func (h *MarketplaceHandler) AdminCreateListing(c *gin.Context) {
 		condition = models.ConditionNew
 	}
 
+	commodityType := models.CommodityType(req.CommodityType)
+	if commodityType == "" {
+		commodityType = models.CommodityOther
+	}
+	if req.MinOrderQty > req.Quantity && req.Quantity > 0 {
+		utils.Fail(c, http.StatusBadRequest, "min_order_qty cannot exceed quantity", nil)
+		return
+	}
+
 	listing := models.Listing{
-		SellerID:    sellerID,
-		Title:       req.Title,
-		Description: req.Description,
-		Price:       req.Price,
-		Category:    req.Category,
-		ImageURLs:   models.StringArray(req.ImageURLs),
-		Condition:   condition,
-		Location:    req.Location,
-		IsActive:    true,
+		SellerID:      sellerID,
+		Title:         req.Title,
+		Description:   req.Description,
+		Price:         req.Price,
+		Category:      req.Category,
+		ImageURLs:     models.StringArray(req.ImageURLs),
+		Condition:     condition,
+		Location:      req.Location,
+		IsActive:      true,
+		CommodityType: commodityType,
+		Quantity:      req.Quantity,
+		Unit:          req.Unit,
+		MinOrderQty:   req.MinOrderQty,
+		Grade:         req.Grade,
 	}
 	if err := database.DB.Create(&listing).Error; err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to create listing", err)
@@ -341,6 +384,14 @@ func (h *MarketplaceHandler) BrowseListings(c *gin.Context) {
 	query := database.DB.Model(&models.Listing{}).Where("is_active = ?", true)
 	if category := c.Query("category"); category != "" {
 		query = query.Where("category = ?", category)
+	}
+	if commodityType := c.Query("commodity_type"); commodityType != "" {
+		query = query.Where("commodity_type = ?", commodityType)
+	}
+	if minQtyStr := c.Query("min_quantity"); minQtyStr != "" {
+		if minQty, err := strconv.ParseFloat(minQtyStr, 64); err == nil && minQty >= 0 {
+			query = query.Where("quantity >= ?", minQty)
+		}
 	}
 	if search := c.Query("search"); search != "" {
 		if len(search) > 200 {
@@ -403,8 +454,7 @@ func (h *MarketplaceHandler) attachSellerInfo(listings []models.Listing) ([]list
 }
 
 // GetListingDetail returns a single listing plus enough seller/contact info
-// for the Call/WhatsApp actions (name, email, and phone — phone may be empty
-// for sellers who applied before the phone field existed).
+// for the Call/WhatsApp actions (name and phone).
 // GET /api/v1/marketplace/listings/:id
 func (h *MarketplaceHandler) GetListingDetail(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -436,7 +486,7 @@ func (h *MarketplaceHandler) GetListingDetail(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := database.DB.Select("name", "email", "phone").First(&user, "id = ?", seller.UserID).Error; err != nil {
+	if err := database.DB.Select("name", "phone").First(&user, "id = ?", seller.UserID).Error; err != nil {
 		utils.Fail(c, http.StatusInternalServerError, "failed to load seller contact info", err)
 		return
 	}
@@ -451,7 +501,6 @@ func (h *MarketplaceHandler) GetListingDetail(c *gin.Context) {
 		},
 		"contact": gin.H{
 			"name":  user.Name,
-			"email": user.Email,
 			"phone": user.Phone,
 		},
 	})
@@ -584,6 +633,12 @@ type updateListingAdminRequest struct {
 	Price       *float64 `json:"price" binding:"omitempty,gt=0,lte=1000000000"`
 	Category    *string  `json:"category" binding:"omitempty,max=50"`
 	IsActive    *bool    `json:"is_active"`
+
+	CommodityType *string  `json:"commodity_type" binding:"omitempty,oneof=coal biomass coke carbon_credit other"`
+	Quantity      *float64 `json:"quantity" binding:"omitempty,gte=0"`
+	Unit          *string  `json:"unit" binding:"omitempty,max=20"`
+	MinOrderQty   *float64 `json:"min_order_qty" binding:"omitempty,gte=0"`
+	Grade         *string  `json:"grade" binding:"omitempty,max=500"`
 }
 
 // UpdateListingAdmin partially updates a listing — admin moderation
@@ -623,6 +678,25 @@ func (h *MarketplaceHandler) UpdateListingAdmin(c *gin.Context) {
 	}
 	if req.IsActive != nil {
 		listing.IsActive = *req.IsActive
+	}
+	if req.CommodityType != nil {
+		listing.CommodityType = models.CommodityType(*req.CommodityType)
+	}
+	if req.Quantity != nil {
+		listing.Quantity = *req.Quantity
+	}
+	if req.Unit != nil {
+		listing.Unit = *req.Unit
+	}
+	if req.MinOrderQty != nil {
+		listing.MinOrderQty = *req.MinOrderQty
+	}
+	if req.Grade != nil {
+		listing.Grade = *req.Grade
+	}
+	if listing.MinOrderQty > listing.Quantity && listing.Quantity > 0 {
+		utils.Fail(c, http.StatusBadRequest, "min_order_qty cannot exceed quantity", nil)
+		return
 	}
 
 	if err := database.DB.Save(&listing).Error; err != nil {

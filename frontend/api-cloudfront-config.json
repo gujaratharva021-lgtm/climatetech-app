@@ -1,0 +1,37 @@
+{
+  "CallerReference": "climatetech-api-cf-002",
+  "Comment": "Climatetech Backend API HTTPS proxy",
+  "Enabled": true,
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "climatetech-api-origin",
+        "DomainName": "ec2-43-205-146-178.ap-south-1.compute.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 8080,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only",
+          "OriginSslProtocols": { "Quantity": 1, "Items": ["TLSv1.2"] }
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "climatetech-api-origin",
+    "ViewerProtocolPolicy": "https-only",
+    "AllowedMethods": {
+      "Quantity": 7,
+      "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
+      "CachedMethods": { "Quantity": 2, "Items": ["GET", "HEAD"] }
+    },
+    "ForwardedValues": {
+      "QueryString": true,
+      "Headers": { "Quantity": 1, "Items": ["*"] },
+      "Cookies": { "Forward": "all" }
+    },
+    "MinTTL": 0,
+    "DefaultTTL": 0,
+    "MaxTTL": 0
+  }
+}

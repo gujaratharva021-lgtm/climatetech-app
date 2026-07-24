@@ -73,13 +73,13 @@ return Scaffold(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               DarkTextField(
-                                hint: 'Enter your email',
-                                icon: Icons.email_outlined,
+                                hint: 'Enter your phone number',
+                                icon: Icons.phone_outlined,
                                 controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
+                                keyboardType: TextInputType.phone,
                                 validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Email is required';
-                                  if (!v.contains('@')) return 'Enter a valid email';
+                                  if (v == null || v.isEmpty) return 'Phone number is required';
+                                  if (v.trim().length < 10) return 'Enter a valid phone number';
                                   return null;
                                 },
                               ),

@@ -85,13 +85,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             ),
                             const SizedBox(height: 14),
                             DarkTextField(
-                              hint: 'Email',
-                              icon: Icons.email_outlined,
+                              hint: 'Phone number',
+                              icon: Icons.phone_outlined,
                               controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
+                              keyboardType: TextInputType.phone,
                               validator: (v) {
-                                if (v == null || v.isEmpty) return 'Email is required';
-                                if (!v.contains('@')) return 'Enter a valid email';
+                                if (v == null || v.isEmpty) return 'Phone number is required';
+                                if (v.trim().length < 10) return 'Enter a valid phone number';
                                 return null;
                               },
                             ),

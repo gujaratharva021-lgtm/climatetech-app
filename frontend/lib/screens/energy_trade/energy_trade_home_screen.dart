@@ -5,27 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/dark_palette.dart';
-import '../../models/listing_model.dart';
-import '../../providers/marketplace_provider.dart';
+import '../../models/commodity_listing_model.dart';
+import '../../providers/energy_trade_provider.dart';
 import '../../widgets/dark_text_field.dart';
 
-class MarketplaceHomeScreen extends ConsumerStatefulWidget {
-  const MarketplaceHomeScreen({super.key});
+class EnergyTradeHomeScreen extends ConsumerStatefulWidget {
+  const EnergyTradeHomeScreen({super.key});
 
   @override
-  ConsumerState<MarketplaceHomeScreen> createState() => _MarketplaceHomeScreenState();
+  ConsumerState<EnergyTradeHomeScreen> createState() => _EnergyTradeHomeScreenState();
 }
 
-class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
+class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
   final _searchController = TextEditingController();
   Timer? _debounce;
-  String _selectedCategory = '';
-
-  @override
-  void initState() {
-    super.initState();
-    ref.read(marketplaceProvider.notifier).loadListings();
-  }
+  String _selectedType = '';
 
   @override
   void dispose() {
@@ -37,40 +31,37 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      ref.read(marketplaceProvider.notifier).setSearch(value.trim());
+      ref.read(energyTradeProvider.notifier).setSearch(value.trim());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(marketplaceProvider);
+    final state = ref.watch(energyTradeProvider);
 
     return Scaffold(
       backgroundColor: DarkPalette.navyDeep,
       appBar: AppBar(
         backgroundColor: DarkPalette.navyDeep,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: DarkPalette.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Marketplace', style: TextStyle(color: DarkPalette.textPrimary, fontSize: 16)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: DarkPalette.textPrimary), onPressed: () => context.pop()),
+        title: const Text('Energy Trade', style: TextStyle(color: DarkPalette.textPrimary, fontSize: 16)),
         actions: [
           IconButton(
             icon: const Icon(Icons.receipt_long_outlined, color: DarkPalette.textPrimary),
             tooltip: 'My listings',
-            onPressed: () => context.push('/marketplace/my-listings'),
+            onPressed: () => context.push('/energy-trade/my-listings'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: DarkPalette.leafGreen,
         foregroundColor: Colors.black,
-        onPressed: () => context.push('/marketplace/post'),
+        onPressed: () => context.push('/energy-trade/post'),
         child: const Icon(Icons.add),
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(marketplaceProvider.notifier).loadListings(),
+        onRefresh: () => ref.read(energyTradeProvider.notifier).loadListings(),
         color: DarkPalette.leafGreen,
         backgroundColor: DarkPalette.navyCard,
         child: SingleChildScrollView(
@@ -79,7 +70,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _energyTradeEntryCard(context),
+              _introBanner(),
               const SizedBox(height: 16),
               DarkTextField(
                 hint: 'Search listings...',
@@ -88,7 +79,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
                 onChanged: _onSearchChanged,
               ),
               const SizedBox(height: 14),
-              _categoryChips(),
+              _commodityTypeChips(),
               const SizedBox(height: 16),
               if (state.browseStatus == LoadStatus.loading && state.listings.isEmpty)
                 const Padding(
@@ -108,78 +99,83 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  Widget _energyTradeEntryCard(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => context.push('/energy-trade'),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: DarkPalette.cyanAccent.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: DarkPalette.cyanAccent.withOpacity(0.25)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: DarkPalette.cyanAccent.withOpacity(0.15), shape: BoxShape.circle),
-              child: const Icon(Icons.bolt_rounded, color: DarkPalette.cyanAccent, size: 20),
+  // Inline rather than a shared FeatureIntroBanner widget -- this app
+  // doesn't have one, unlike the pattern some other Flutter projects use.
+  Widget _introBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: DarkPalette.leafGreen.withOpacity(0.08), borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.bolt_rounded, color: DarkPalette.leafGreen, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('B2B energy commodity trading',
+                    style: TextStyle(color: DarkPalette.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                  'Browse coal, biomass, coke, and carbon credit listings from verified sellers, or tap + to post your own.',
+                  style: TextStyle(color: DarkPalette.textSecondary.withOpacity(0.9), fontSize: 12, height: 1.4),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('B2B Energy Trade',
-                      style: TextStyle(color: DarkPalette.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
-                  SizedBox(height: 2),
-                  Text('Coal, biomass, coke & carbon credits',
-                      style: TextStyle(color: DarkPalette.textSecondary, fontSize: 11.5)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: DarkPalette.textMuted),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _categoryChips() {
-    final categories = ['', ...marketplaceCategories];
+  Widget _commodityTypeChips() {
+    final types = ['', ...commodityTypes];
     return SizedBox(
-      height: 36,
+      height: 88,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemCount: types.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
-          final category = categories[i];
-          final label = category.isEmpty ? 'All' : category;
-          final selected = _selectedCategory == category;
+          final type = types[i];
+          final label = type.isEmpty ? 'All' : commodityTypeLabel(type);
+          final selected = _selectedType == type;
           return InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             onTap: () {
-              setState(() => _selectedCategory = category);
-              ref.read(marketplaceProvider.notifier).setCategory(category);
+              setState(() => _selectedType = type);
+              ref.read(energyTradeProvider.notifier).setCommodityType(type);
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              width: 84,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
               decoration: BoxDecoration(
-                color: selected ? DarkPalette.leafGreen : Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(20),
+                color: selected ? DarkPalette.leafGreen.withOpacity(0.18) : Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: selected ? Border.all(color: DarkPalette.leafGreen, width: 1.5) : null,
               ),
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: selected ? Colors.black : DarkPalette.textSecondary,
-                    fontSize: 12,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    type.isEmpty ? Icons.apps_rounded : commodityTypeIcon(type),
+                    color: selected ? DarkPalette.leafGreen : DarkPalette.textSecondary,
+                    size: 26,
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: selected ? DarkPalette.leafGreen : DarkPalette.textSecondary,
+                      fontSize: 11,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -188,7 +184,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  Widget _buildGrid(List<ListingModel> listings) {
+  Widget _buildGrid(List<CommodityListingModel> listings) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -203,10 +199,10 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
     );
   }
 
-  Widget _listingCard(ListingModel listing) {
+  Widget _listingCard(CommodityListingModel listing) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () => context.push('/marketplace/listings/${listing.id}'),
+      onTap: () => context.push('/energy-trade/listings/${listing.id}'),
       child: Container(
         decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
@@ -216,11 +212,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
             AspectRatio(
               aspectRatio: 1.2,
               child: listing.imageUrls.isNotEmpty
-                  ? Image.network(
-                      listing.imageUrls.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                    )
+                  ? Image.network(listing.imageUrls.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _imagePlaceholder())
                   : _imagePlaceholder(),
             ),
             Padding(
@@ -228,16 +220,34 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(commodityTypeIcon(listing.commodityType), color: DarkPalette.leafGreen, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        commodityTypeLabel(listing.commodityType),
+                        style: const TextStyle(color: DarkPalette.leafGreen, fontSize: 10, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    '₹${listing.price.toStringAsFixed(0)}',
-                    style: const TextStyle(color: DarkPalette.leafGreen, fontSize: 15, fontWeight: FontWeight.w700),
+                    '₹${listing.pricePerUnit.toStringAsFixed(0)}/${listing.unit}',
+                    style: const TextStyle(color: DarkPalette.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     listing.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: DarkPalette.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(color: DarkPalette.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${listing.quantity.toStringAsFixed(0)} ${listing.unit} available',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: DarkPalette.textMuted, fontSize: 10.5),
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -291,7 +301,7 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.read(marketplaceProvider.notifier).loadListings(),
+            onPressed: () => ref.read(energyTradeProvider.notifier).loadListings(),
             style: ElevatedButton.styleFrom(backgroundColor: DarkPalette.leafGreen, foregroundColor: Colors.black),
             child: const Text('Try again'),
           ),

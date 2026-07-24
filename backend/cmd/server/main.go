@@ -15,6 +15,7 @@ import (
 	"climatetech-backend/internal/database"
 	"climatetech-backend/internal/middleware"
 	"climatetech-backend/internal/routes"
+        "climatetech-backend/internal/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -67,6 +68,29 @@ func main() {
 	}))
 
 	routes.RegisterRoutes(router, cfg)
+
+        // Periodic price-index snapshot recording (Phase 6, "Live Price
+        // Index"): a simple in-process ticker rather than external cron
+        // infra. Fires once immediately on boot -- so a fresh environment has
+        // at least one data point without waiting 24h -- then every 24h for
+        // as long as this process runs. If ever scaled to multiple instances,
+        // each would fire this independently; that's harmless duplication
+        // (RecordDailySnapshot has no uniqueness constraint on day, see its
+        // doc comment) rather than a correctness problem, but worth moving to
+        // a single external scheduled task at that point instead.
+        priceIndexService := services.NewPriceIndexService(database.DB, database.RedisClient)
+        go func() {
+                if err := priceIndexService.RecordDailySnapshot(); err != nil {
+                        log.Printf("initial price index snapshot failed: %v", err)
+                }
+                ticker := time.NewTicker(24 * time.Hour)
+                defer ticker.Stop()
+                for range ticker.C {
+                        if err := priceIndexService.RecordDailySnapshot(); err != nil {
+                                log.Printf("scheduled price index snapshot failed: %v", err)
+                        }
+                }
+        }()
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.AppPort,

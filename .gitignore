@@ -2,3 +2,8 @@
 # backend/firebase-service-account.json, and this directory's own .env).
 .env
 firebase-service-account.json
+
+*.bak
+*.bak2
+backend/climatetech_backend_linux
+backend/climatetech_migrate_linux

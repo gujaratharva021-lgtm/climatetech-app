@@ -11,8 +11,8 @@ class ApiService {
   ApiService(this._storage)
       : dio = Dio(BaseOptions(
           baseUrl: ApiConstants.baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
           headers: {'Content-Type': 'application/json'},
         )) {
     if (kDebugMode) {
@@ -73,8 +73,8 @@ class ApiService {
     try {
       final response = await Dio(BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       )).post(
         ApiConstants.refresh,
         data: {'refresh_token': refreshToken},

@@ -32,7 +32,7 @@ class AuthService {
     try {
       final response = await _api.dio.post(ApiConstants.register, data: {
         'name': name,
-        'email': email,
+        'phone': email,
         'password': password,
         'role': role,
       });
@@ -45,7 +45,7 @@ class AuthService {
   Future<AuthResult> login({required String email, required String password}) async {
     try {
       final response = await _api.dio.post(ApiConstants.login, data: {
-        'email': email,
+        'phone': email,
         'password': password,
       });
       return _handleAuthResponse(response.data['data']);

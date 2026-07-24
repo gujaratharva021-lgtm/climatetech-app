@@ -49,6 +49,16 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	insightsHandler := handlers.NewInsightsHandler(geminiService)
 	alertHandler := handlers.NewAlertHandler()
 	marketplaceHandler := handlers.NewMarketplaceHandler()
+	rfqHandler := handlers.NewRFQHandler()
+	orderHandler := handlers.NewOrderHandler()
+	razorpayService := services.NewRazorpayService(cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
+	paymentHandler := handlers.NewPaymentHandler(razorpayService, cfg.RazorpayWebhookSecret, cfg.RazorpayKeyID)
+	shipmentHandler := handlers.NewShipmentHandler()
+	priceIndexService := services.NewPriceIndexService(database.DB, database.RedisClient)
+	priceIndexHandler := handlers.NewPriceIndexHandler(priceIndexService)
+	aiHandler := handlers.NewAIHandler(geminiService, priceIndexService)
+	financingHandler := handlers.NewFinancingHandler()
+	carbonCertHandler := handlers.NewCarbonCertificateHandler()
 	newsHandler := handlers.NewNewsHandler(newsService)
 	challengeHandler := handlers.NewChallengeHandler(geminiService)
 	reportHandler := handlers.NewReportHandler()
@@ -63,6 +73,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	// cache connection has died. Used as both the ALB target-group health
 	// check and the Docker HEALTHCHECK.
 	router.GET("/health", healthCheckHandler)
+	router.POST("/webhooks/razorpay", paymentHandler.RazorpayWebhook)
 
 	v1 := router.Group("/api/v1")
 	{
@@ -131,6 +142,61 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			marketplace.DELETE("/listings/:id", marketplaceHandler.DeleteListing)
 			marketplace.GET("/my-listings", marketplaceHandler.GetMyListings)
 
+			marketplace.POST("/rfq", rfqHandler.CreateRFQ)
+			marketplace.GET("/rfq", rfqHandler.BrowseRFQs)
+			marketplace.GET("/rfq/:id", rfqHandler.GetRFQDetail)
+			marketplace.PUT("/rfq/:id/cancel", rfqHandler.CancelRFQ)
+			marketplace.POST("/rfq/:id/bids", rfqHandler.SubmitBid)
+			marketplace.GET("/rfq/:id/bids", rfqHandler.ListBidsForRFQ)
+			marketplace.PUT("/rfq/:id/bids/:bid_id/accept", rfqHandler.AcceptBid)
+			marketplace.GET("/my-rfqs", rfqHandler.GetMyRFQs)
+			marketplace.GET("/my-bids", rfqHandler.GetMyBids)
+
+			marketplace.POST("/rfq/:id/order", orderHandler.CreateOrderFromRFQ)
+			marketplace.POST("/listings/:id/order", orderHandler.CreateOrderFromListing)
+			marketplace.GET("/orders/:id", orderHandler.GetOrderDetail)
+			marketplace.PUT("/orders/:id/confirm", orderHandler.ConfirmOrder)
+			marketplace.PUT("/orders/:id/ship", orderHandler.ShipOrder)
+			marketplace.PUT("/orders/:id/deliver", orderHandler.DeliverOrder)
+			marketplace.PUT("/orders/:id/cancel", orderHandler.CancelOrder)
+			marketplace.GET("/my-orders", orderHandler.GetMyOrdersAsBuyer)
+			marketplace.GET("/seller/orders", orderHandler.GetMySellerOrders)
+
+			marketplace.POST("/orders/:id/payment/create", paymentHandler.CreatePaymentOrder)
+			marketplace.POST("/orders/:id/payment/verify", paymentHandler.VerifyPayment)
+			marketplace.GET("/orders/:id/payment", paymentHandler.GetPaymentStatus)
+
+			marketplace.POST("/orders/:id/shipment", shipmentHandler.CreateShipment)
+			marketplace.PUT("/shipments/:id/status", shipmentHandler.UpdateShipmentStatus)
+			marketplace.GET("/orders/:id/shipment", shipmentHandler.GetShipmentByOrder)
+
+			marketplace.GET("/price-index", priceIndexHandler.GetAllPriceIndexes)
+			marketplace.GET("/price-index/:commodity_type", priceIndexHandler.GetPriceIndex)
+			marketplace.GET("/price-index/:commodity_type/history", priceIndexHandler.GetPriceHistory)
+
+			marketplace.POST("/orders/:id/ai/draft-contract", middleware.RateLimit("ai", 20, time.Minute), aiHandler.DraftContract)
+
+			ai := marketplace.Group("/ai")
+			ai.Use(middleware.RateLimit("ai", 20, time.Minute))
+			{
+				ai.POST("/chat", aiHandler.Chat)
+				ai.GET("/market-insights/:commodity_type", aiHandler.GetMarketInsights)
+				ai.POST("/recommend-listings", aiHandler.RecommendListings)
+			}
+
+			marketplace.POST("/orders/:id/financing", financingHandler.CreateFinancingRequest)
+			marketplace.GET("/financing/:id", financingHandler.GetFinancingRequest)
+			marketplace.GET("/my-financing", financingHandler.GetMyFinancingRequests)
+			marketplace.GET("/orders/:id/financing", financingHandler.GetFinancingForOrder)
+
+			marketplace.POST("/carbon-certificates", carbonCertHandler.CreateCertificate)
+			marketplace.PUT("/carbon-certificates/:id/attach-listing", carbonCertHandler.AttachToListing)
+			marketplace.GET("/carbon-certificates/:id", carbonCertHandler.GetCertificate)
+			marketplace.POST("/carbon-certificates/:id/retire", carbonCertHandler.RetireCredits)
+			marketplace.GET("/carbon-certificates/:id/retirements", carbonCertHandler.GetRetirementsForCertificate)
+			marketplace.GET("/my-carbon-certificates", carbonCertHandler.GetMyCertificates)
+			marketplace.GET("/my-retirements", carbonCertHandler.GetMyRetirements)
+
 			marketplaceAdmin := marketplace.Group("/admin")
 			marketplaceAdmin.Use(middleware.RequireRole("admin"))
 			{
@@ -141,6 +207,15 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 				marketplaceAdmin.POST("/listings", marketplaceHandler.AdminCreateListing)
 				marketplaceAdmin.PUT("/listings/:id", marketplaceHandler.UpdateListingAdmin)
 				marketplaceAdmin.DELETE("/listings/:id", marketplaceHandler.DeleteListingAdmin)
+				marketplaceAdmin.GET("/rfqs", rfqHandler.ListAllRFQsAdmin)
+				marketplaceAdmin.GET("/orders", orderHandler.ListAllOrdersAdmin)
+				marketplaceAdmin.PUT("/orders/:id/release-escrow", paymentHandler.ReleaseEscrow)
+				marketplaceAdmin.POST("/orders/:id/refund", paymentHandler.RefundPayment)
+				marketplaceAdmin.GET("/shipments", shipmentHandler.ListAllShipmentsAdmin)
+				marketplaceAdmin.POST("/price-index/snapshot", priceIndexHandler.RecordSnapshotAdmin)
+				marketplaceAdmin.GET("/financing", financingHandler.ListAllFinancingAdmin)
+				marketplaceAdmin.PUT("/financing/:id", financingHandler.UpdateFinancingStatusAdmin)
+				marketplaceAdmin.GET("/carbon-certificates", carbonCertHandler.ListAllCertificatesAdmin)
 			}
 		}
 

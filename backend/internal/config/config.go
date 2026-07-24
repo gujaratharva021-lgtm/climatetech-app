@@ -38,6 +38,10 @@ type Config struct {
 
 	NewsAPIKey string
 
+	RazorpayKeyID         string
+	RazorpayKeySecret     string
+	RazorpayWebhookSecret string
+
 	AllowedOrigins []string
 
 	// TrustedProxies pins which upstream hops Gin trusts for X-Forwarded-*
@@ -110,6 +114,10 @@ func Load() *Config {
 		FirebaseCredentialsPath: getEnv("FIREBASE_CREDENTIALS_PATH", ""),
 
 		NewsAPIKey: getEnv("NEWS_API_KEY", ""),
+
+		RazorpayKeyID:         getEnv("RAZORPAY_KEY_ID", ""),
+		RazorpayKeySecret:     getEnv("RAZORPAY_KEY_SECRET", ""),
+		RazorpayWebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
 
 		AllowedOrigins: origins,
 		TrustedProxies: trustedProxies,
