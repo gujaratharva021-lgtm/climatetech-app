@@ -303,6 +303,11 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 
 			admin.GET("/carbon-overview", adminAnalyticsHandler.GetCarbonOverview)
 
+			admin.GET("/analytics/platform-overview", adminAnalyticsHandler.GetPlatformOverview)
+			admin.GET("/analytics/marketplace-overview", adminAnalyticsHandler.GetMarketplaceOverview)
+			admin.GET("/analytics/logistics-overview", adminAnalyticsHandler.GetLogisticsOverview)
+			admin.GET("/analytics/order-trends", adminAnalyticsHandler.GetOrderTrends)
+
 			admin.GET("/kyc/pending", kycHandler.ListPendingKYC)
 			admin.PUT("/kyc/:id/approve", kycHandler.ApproveKYC)
 			admin.PUT("/kyc/:id/reject", kycHandler.RejectKYC)
