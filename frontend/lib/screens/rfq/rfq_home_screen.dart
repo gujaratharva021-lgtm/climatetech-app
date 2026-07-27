@@ -1,44 +1,26 @@
-import 'dart:async';
-
+﻿
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/theme/dark_palette.dart';
 import '../../models/commodity_listing_model.dart';
-import '../../providers/energy_trade_provider.dart';
-import '../../widgets/dark_text_field.dart';
+import '../../models/rfq_model.dart';
+import '../../providers/rfq_provider.dart';
 
-class EnergyTradeHomeScreen extends ConsumerStatefulWidget {
-  const EnergyTradeHomeScreen({super.key});
+class RFQHomeScreen extends ConsumerStatefulWidget {
+  const RFQHomeScreen({super.key});
 
   @override
-  ConsumerState<EnergyTradeHomeScreen> createState() => _EnergyTradeHomeScreenState();
+  ConsumerState<RFQHomeScreen> createState() => _RFQHomeScreenState();
 }
 
-class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
-  final _searchController = TextEditingController();
-  Timer? _debounce;
+class _RFQHomeScreenState extends ConsumerState<RFQHomeScreen> {
   String _selectedType = '';
 
   @override
-  void dispose() {
-    _debounce?.cancel();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
-      ref.read(energyTradeProvider.notifier).setSearch(value.trim());
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final state = ref.watch(energyTradeProvider);
+    final state = ref.watch(rfqProvider);
 
     return Scaffold(
       backgroundColor: DarkPalette.navyDeep,
@@ -46,23 +28,28 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
         backgroundColor: DarkPalette.navyDeep,
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: DarkPalette.textPrimary), onPressed: () => context.pop()),
-        title: const Text('Energy Trade', style: TextStyle(color: DarkPalette.textPrimary, fontSize: 16)),
+        title: const Text('RFQ Marketplace', style: TextStyle(color: DarkPalette.textPrimary, fontSize: 16)),
         actions: [
           IconButton(
             icon: const Icon(Icons.receipt_long_outlined, color: DarkPalette.textPrimary),
-            tooltip: 'My listings',
-            onPressed: () => context.push('/energy-trade/my-listings'),
+            tooltip: 'My RFQs',
+            onPressed: () => context.push('/rfq/my-rfqs'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.local_offer_outlined, color: DarkPalette.textPrimary),
+            tooltip: 'My Bids',
+            onPressed: () => context.push('/rfq/my-bids'),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: DarkPalette.leafGreen,
         foregroundColor: Colors.black,
-        onPressed: () => context.push('/energy-trade/post'),
+        onPressed: () => context.push('/rfq/post'),
         child: const Icon(Icons.add),
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(energyTradeProvider.notifier).loadListings(),
+        onRefresh: () => ref.read(rfqProvider.notifier).loadRFQs(),
         color: DarkPalette.leafGreen,
         backgroundColor: DarkPalette.navyCard,
         child: SingleChildScrollView(
@@ -73,26 +60,19 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
             children: [
               _introBanner(),
               const SizedBox(height: 16),
-              DarkTextField(
-                hint: 'Search listings...',
-                icon: Icons.search,
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-              ),
-              const SizedBox(height: 14),
               _commodityTypeChips(),
               const SizedBox(height: 16),
-              if (state.browseStatus == LoadStatus.loading && state.listings.isEmpty)
+              if (state.browseStatus == LoadStatus.loading && state.rfqs.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 60),
                   child: Center(child: CircularProgressIndicator(color: DarkPalette.leafGreen)),
                 )
-              else if (state.browseStatus == LoadStatus.error && state.listings.isEmpty)
+              else if (state.browseStatus == LoadStatus.error && state.rfqs.isEmpty)
                 _buildErrorState(state.browseError)
-              else if (state.listings.isEmpty)
+              else if (state.rfqs.isEmpty)
                 _buildEmptyState()
               else
-                _buildGrid(state.listings),
+                _buildList(state.rfqs),
             ],
           ),
         ),
@@ -100,8 +80,6 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
     );
   }
 
-  // Inline rather than a shared FeatureIntroBanner widget -- this app
-  // doesn't have one, unlike the pattern some other Flutter projects use.
   Widget _introBanner() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -109,17 +87,17 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.bolt_rounded, color: DarkPalette.leafGreen, size: 22),
+          const Icon(Icons.gavel_rounded, color: DarkPalette.leafGreen, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('B2B energy commodity trading',
+                const Text('Reverse auction: post what you need',
                     style: TextStyle(color: DarkPalette.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
-                  'Browse coal, biomass, coke, and carbon credit listings from verified sellers, or tap + to post your own.',
+                  'Buyers post requirements here. Sellers bid with their best price. Tap + to post your own requirement.',
                   style: TextStyle(color: DarkPalette.textSecondary.withOpacity(0.9), fontSize: 12, height: 1.4),
                 ),
               ],
@@ -146,7 +124,7 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
             borderRadius: BorderRadius.circular(16),
             onTap: () {
               setState(() => _selectedType = type);
-              ref.read(energyTradeProvider.notifier).setCommodityType(type);
+              ref.read(rfqProvider.notifier).setCommodityType(type);
             },
             child: Container(
               width: 84,
@@ -185,87 +163,69 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
     );
   }
 
-  Widget _buildGrid(List<CommodityListingModel> listings) {
-    return GridView.builder(
+  Widget _buildList(List<RFQModel> rfqs) {
+    return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: listings.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.62,
-      ),
-      itemBuilder: (context, i) => _listingCard(listings[i]),
+      itemCount: rfqs.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, i) => _rfqCard(rfqs[i]),
     );
   }
 
-  Widget _listingCard(CommodityListingModel listing) {
+  Widget _rfqCard(RFQModel rfq) {
+    final daysLeft = rfq.deadline.difference(DateTime.now()).inHours;
+    final deadlineLabel = daysLeft < 24 ? '${daysLeft}h left' : '${(daysLeft / 24).floor()}d left';
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
-      onTap: () => context.push('/energy-trade/listings/${listing.id}'),
+      onTap: () => context.push('/rfq/${rfq.id}'),
       child: Container(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(16)),
-        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AspectRatio(
-              aspectRatio: 1.2,
-              child: listing.imageUrls.isNotEmpty
-                  ? CachedNetworkImage(imageUrl: listing.imageUrls.first, fit: BoxFit.cover, errorWidget: (_, __, ___) => _imagePlaceholder(), placeholder: (_, __) => _imagePlaceholder())
-                  : _imagePlaceholder(),
+            Row(
+              children: [
+                Icon(commodityTypeIcon(rfq.commodityType), color: DarkPalette.leafGreen, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  commodityTypeLabel(rfq.commodityType),
+                  style: const TextStyle(color: DarkPalette.leafGreen, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: DarkPalette.cyanAccent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(deadlineLabel, style: const TextStyle(color: DarkPalette.cyanAccent, fontSize: 10, fontWeight: FontWeight.w600)),
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(commodityTypeIcon(listing.commodityType), color: DarkPalette.leafGreen, size: 12),
-                      const SizedBox(width: 4),
-                      Text(
-                        commodityTypeLabel(listing.commodityType),
-                        style: const TextStyle(color: DarkPalette.leafGreen, fontSize: 10, fontWeight: FontWeight.w700),
-                      ),
-                    ],
+            const SizedBox(height: 8),
+            Text(
+              '${rfq.quantity.toStringAsFixed(0)} ${rfq.unit} needed',
+              style: const TextStyle(color: DarkPalette.textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+            if (rfq.grade.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(rfq.grade, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: DarkPalette.textSecondary, fontSize: 12)),
+            ],
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                if (rfq.targetPrice > 0)
+                  Text('Target: â‚¹${rfq.targetPrice.toStringAsFixed(0)}/${rfq.unit}',
+                      style: const TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),
+                if (rfq.targetPrice > 0 && rfq.location.isNotEmpty) const Text('  â€¢  ', style: TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),
+                if (rfq.location.isNotEmpty)
+                  Expanded(
+                    child: Text(rfq.location, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '₹${listing.pricePerUnit.toStringAsFixed(0)}/${listing.unit}',
-                    style: const TextStyle(color: DarkPalette.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    listing.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: DarkPalette.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${listing.quantity.toStringAsFixed(0)} ${listing.unit} available',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: DarkPalette.textMuted, fontSize: 10.5),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          listing.shopName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: DarkPalette.textMuted, fontSize: 11),
-                        ),
-                      ),
-                      if (listing.verified) const Icon(Icons.verified, color: DarkPalette.cyanAccent, size: 14),
-                    ],
-                  ),
-                ],
-              ),
+              ],
             ),
           ],
         ),
@@ -273,18 +233,11 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
     );
   }
 
-  Widget _imagePlaceholder() {
-    return Container(
-      color: Colors.white.withOpacity(0.06),
-      child: const Center(child: Icon(Icons.image_outlined, color: DarkPalette.textMuted, size: 28)),
-    );
-  }
-
   Widget _buildEmptyState() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white.withOpacity(0.04), borderRadius: BorderRadius.circular(16)),
-      child: const Center(child: Text('No listings found.', style: TextStyle(color: DarkPalette.textMuted, fontSize: 13))),
+      child: const Center(child: Text('No open RFQs right now.', style: TextStyle(color: DarkPalette.textMuted, fontSize: 13))),
     );
   }
 
@@ -295,14 +248,10 @@ class _EnergyTradeHomeScreenState extends ConsumerState<EnergyTradeHomeScreen> {
         children: [
           const Icon(Icons.cloud_off_rounded, color: DarkPalette.textMuted, size: 40),
           const SizedBox(height: 12),
-          Text(
-            message ?? 'Could not load listings.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: DarkPalette.textSecondary, fontSize: 13),
-          ),
+          Text(message ?? 'Could not load RFQs.', textAlign: TextAlign.center, style: const TextStyle(color: DarkPalette.textSecondary, fontSize: 13)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.read(energyTradeProvider.notifier).loadListings(),
+            onPressed: () => ref.read(rfqProvider.notifier).loadRFQs(),
             style: ElevatedButton.styleFrom(backgroundColor: DarkPalette.leafGreen, foregroundColor: Colors.black),
             child: const Text('Try again'),
           ),

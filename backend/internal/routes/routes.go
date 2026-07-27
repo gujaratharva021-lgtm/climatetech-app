@@ -58,6 +58,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	priceIndexHandler := handlers.NewPriceIndexHandler(priceIndexService)
 	aiHandler := handlers.NewAIHandler(geminiService, priceIndexService)
 	financingHandler := handlers.NewFinancingHandler()
+        inspectionHandler := handlers.NewInspectionHandler()
 	carbonCertHandler := handlers.NewCarbonCertificateHandler()
 	newsHandler := handlers.NewNewsHandler(newsService)
 	challengeHandler := handlers.NewChallengeHandler(geminiService)
@@ -189,6 +190,14 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			marketplace.GET("/my-financing", financingHandler.GetMyFinancingRequests)
 			marketplace.GET("/orders/:id/financing", financingHandler.GetFinancingForOrder)
 
+                        marketplace.POST("/orders/:id/inspection", inspectionHandler.CreateInspectionRequest)
+                        marketplace.GET("/inspections/:id", inspectionHandler.GetInspectionRequest)
+                        marketplace.PUT("/inspections/:id/schedule", inspectionHandler.ScheduleInspection)
+                        marketplace.PUT("/inspections/:id/complete", inspectionHandler.CompleteInspection)
+                        marketplace.PUT("/inspections/:id/cancel", inspectionHandler.CancelInspection)
+                        marketplace.GET("/my-inspections", inspectionHandler.GetMyInspections)
+                        marketplace.GET("/inspector/assigned", inspectionHandler.GetAssignedInspections)
+
 			marketplace.POST("/carbon-certificates", carbonCertHandler.CreateCertificate)
 			marketplace.PUT("/carbon-certificates/:id/attach-listing", carbonCertHandler.AttachToListing)
 			marketplace.GET("/carbon-certificates/:id", carbonCertHandler.GetCertificate)
@@ -215,6 +224,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 				marketplaceAdmin.POST("/price-index/snapshot", priceIndexHandler.RecordSnapshotAdmin)
 				marketplaceAdmin.GET("/financing", financingHandler.ListAllFinancingAdmin)
 				marketplaceAdmin.PUT("/financing/:id", financingHandler.UpdateFinancingStatusAdmin)
+                                marketplaceAdmin.GET("/inspections", inspectionHandler.ListAllInspectionsAdmin)
+                                marketplaceAdmin.PUT("/inspections/:id/assign", inspectionHandler.AssignInspectorAdmin)
 				marketplaceAdmin.GET("/carbon-certificates", carbonCertHandler.ListAllCertificatesAdmin)
 			}
 		}

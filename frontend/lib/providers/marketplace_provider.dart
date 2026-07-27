@@ -161,7 +161,10 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
     required double price,
     required String category,
     List<String> imageUrls = const [],
-    String condition = 'used',
+    required double quantity,
+    required String unit,
+    double minOrderQty = 0,
+    String? grade,
     String? location,
   }) async {
     try {
@@ -171,7 +174,10 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
         price: price,
         category: category,
         imageUrls: imageUrls,
-        condition: condition,
+        quantity: quantity,
+        unit: unit,
+        minOrderQty: minOrderQty,
+        grade: grade,
         location: location,
       );
       await loadMyListings();
@@ -217,3 +223,4 @@ class MarketplaceNotifier extends StateNotifier<MarketplaceState> {
 final marketplaceProvider = StateNotifierProvider<MarketplaceNotifier, MarketplaceState>((ref) {
   return MarketplaceNotifier(ref.read(marketplaceServiceProvider));
 });
+

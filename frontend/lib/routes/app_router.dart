@@ -25,6 +25,18 @@ import '../screens/marketplace/listing_detail_screen.dart';
 import '../screens/marketplace/marketplace_home_screen.dart';
 import '../screens/marketplace/my_listings_screen.dart';
 import '../screens/marketplace/post_listing_screen.dart';
+import '../screens/orders/my_orders_screen.dart';
+import '../screens/orders/seller_orders_screen.dart';
+import '../screens/orders/order_detail_screen.dart';
+import '../screens/financing/my_financing_screen.dart';
+import '../screens/carbon_certificates/my_carbon_certificates_screen.dart';
+import '../screens/ai_assistant/ai_chat_screen.dart';
+import '../screens/price_index/price_index_screen.dart';
+import '../screens/rfq/my_bids_screen.dart';
+import '../screens/rfq/my_rfqs_screen.dart';
+import '../screens/rfq/post_rfq_screen.dart';
+import '../screens/rfq/rfq_detail_screen.dart';
+import '../screens/rfq/rfq_home_screen.dart';
 import '../screens/news/news_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/reports/reports_screen.dart';
@@ -84,6 +96,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/energy-trade', builder: (context, state) => const EnergyTradeHomeScreen()),
       GoRoute(path: '/energy-trade/post', builder: (context, state) => const PostCommodityListingScreen()),
       GoRoute(path: '/energy-trade/my-listings', builder: (context, state) => const MyCommodityListingsScreen()),
+      GoRoute(path: '/rfq', builder: (context, state) => const RFQHomeScreen()),
+      GoRoute(path: '/rfq/post', builder: (context, state) => const PostRFQScreen()),
+      GoRoute(path: '/rfq/my-rfqs', builder: (context, state) => const MyRFQsScreen()),
+      GoRoute(path: '/rfq/my-bids', builder: (context, state) => const MyBidsScreen()),
+      GoRoute(path: '/orders', builder: (context, state) => const MyOrdersScreen()),
+      GoRoute(path: '/orders/seller', builder: (context, state) => const SellerOrdersScreen()),
+      GoRoute(path: '/price-index', builder: (context, state) => const PriceIndexScreen()),
+      GoRoute(path: '/financing', builder: (context, state) => const MyFinancingScreen()),
+      GoRoute(path: '/carbon-certificates', builder: (context, state) => const MyCarbonCertificatesScreen()),
+      GoRoute(path: '/ai-assistant', builder: (context, state) => const AIChatScreen()),
+      GoRoute(
+        path: '/orders/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          if (id == null) return const SizedBox.shrink();
+          return OrderDetailScreen(orderId: id);
+        },
+      ),
+      GoRoute(
+        path: '/rfq/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          if (id == null) return const SizedBox.shrink();
+          return RFQDetailScreen(rfqId: id);
+        },
+      ),
       GoRoute(
         path: '/energy-trade/listings/:id',
         builder: (context, state) {
@@ -145,3 +183,4 @@ class _RouteNotFoundScreen extends StatelessWidget {
     );
   }
 }
+
