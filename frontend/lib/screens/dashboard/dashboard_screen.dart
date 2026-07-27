@@ -671,91 +671,34 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildBottomNav(BuildContext context) {
     return Container(
-      color: DarkPalette.navyDeep,
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-            color: DarkPalette.navyCard,
-            borderRadius: BorderRadius.circular(28)),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Align(
-                heightFactor: 1,
-                child:
-                    _navItem(icon: Icons.home_rounded, label: 'Home'),
-              ),
-            ),
-            Expanded(
-              child: Align(
-                heightFactor: 1,
-                child: _navItem(
-                    icon: Icons.map_outlined,
-                    label: 'Map',
-                    onTap: () => context.push('/map')),
-              ),
-            ),
-            Expanded(
-              child: Align(
-                heightFactor: 1,
-                child: InkWell(
-                  onTap: () => context.push('/carbon'),
-                  child: Transform.translate(
-                    offset: const Offset(0, -14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 46,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            gradient: DarkPalette.primaryButtonGradient,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                  color:
-                                      DarkPalette.leafGreen.withOpacity(0.4),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6))
-                            ],
-                          ),
-                          child: const Icon(Icons.eco_rounded,
-                              color: Colors.black, size: 22),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text('Carbon',
-                            style: TextStyle(
-                                color: DarkPalette.textMuted,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Align(
-                heightFactor: 1,
-                child: _navItem(
-                    icon: Icons.storefront_outlined,
-                    label: 'Market',
-                    onTap: () => context.push('/marketplace')),
-              ),
-            ),
-            Expanded(
-              child: Align(
-                heightFactor: 1,
-                child: _navItem(
-                    icon: Icons.article_outlined,
-                    label: 'News',
-                    onTap: () => context.push('/news')),
-              ),
-            ),
-          ],
-        ),
+      color: DarkPalette.navyCard,
+      padding: EdgeInsets.fromLTRB(
+          8, 10, 8, 10 + MediaQuery.of(context).padding.bottom),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _navItem(icon: Icons.home_rounded, label: 'Home'),
+          _navItem(
+              icon: Icons.map_outlined,
+              label: 'Map',
+              onTap: () => context.push('/map')),
+          _navItem(
+              icon: Icons.eco_rounded,
+              label: 'Carbon',
+              onTap: () => context.push('/carbon')),
+          _navItem(
+              icon: Icons.storefront_outlined,
+              label: 'Market',
+              onTap: () => context.push('/marketplace')),
+          _navItem(
+              icon: Icons.article_outlined,
+              label: 'News',
+              onTap: () => context.push('/news')),
+          _navItem(
+              icon: Icons.local_shipping_outlined,
+              label: 'Logistics',
+              onTap: () => context.push('/logistics')),
+        ],
       ),
     );
   }
@@ -834,3 +777,4 @@ class _IconWithBadge extends ConsumerWidget {
     );
   }
 }
+

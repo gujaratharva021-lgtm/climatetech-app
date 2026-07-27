@@ -1,4 +1,4 @@
-﻿
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -218,9 +218,9 @@ class _RFQHomeScreenState extends ConsumerState<RFQHomeScreen> {
             Row(
               children: [
                 if (rfq.targetPrice > 0)
-                  Text('Target: â‚¹${rfq.targetPrice.toStringAsFixed(0)}/${rfq.unit}',
+                  Text('Target: ₹${rfq.targetPrice.toStringAsFixed(0)}/${rfq.unit}',
                       style: const TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),
-                if (rfq.targetPrice > 0 && rfq.location.isNotEmpty) const Text('  â€¢  ', style: TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),
+                if (rfq.targetPrice > 0 && rfq.location.isNotEmpty) const Text('  •  ', style: TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),
                 if (rfq.location.isNotEmpty)
                   Expanded(
                     child: Text(rfq.location, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: DarkPalette.textMuted, fontSize: 11.5)),

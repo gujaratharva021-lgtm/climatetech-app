@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -160,7 +160,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
               if (!isPending)
                 CustomButton(
                   label: isRejected ? 'Reapply as a seller' : 'Become a seller',
-                  // Same destination either way â€” the backend has no
+                  // Same destination either way — the backend has no
                   // separate reapplication endpoint (submitting again while
                   // a rejected profile exists is rejected with 409 "you
                   // already have a seller profile"), so this at least lets
@@ -198,7 +198,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 icon: Icons.notes_rounded,
                 controller: _descriptionController),
             const SizedBox(height: 14),
-            _label('Price per unit (â‚¹)'),
+            _label('Price per unit (₹)'),
             DarkTextField(
               hint: '0',
               icon: Icons.currency_rupee,

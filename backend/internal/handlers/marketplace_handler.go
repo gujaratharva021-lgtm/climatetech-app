@@ -75,7 +75,7 @@ func (h *MarketplaceHandler) ApplySeller(c *gin.Context) {
 		ShopCategory:  req.ShopCategory,
 		Description:   req.Description,
 		ShopPhotoURLs: models.StringArray(req.ShopPhotoURLs),
-		Status:        models.SellerStatusPending,
+		Status:        models.SellerStatusApproved, // auto-approved on apply
 	}
 
 	// The seller profile and the contact phone number (stored on User, since

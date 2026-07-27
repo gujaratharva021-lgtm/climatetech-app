@@ -82,15 +82,6 @@ class _MarketplaceHomeScreenState extends ConsumerState<MarketplaceHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DarkTextField(
-                hint: 'Search listings...',
-                icon: Icons.search,
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-              ),
-              const SizedBox(height: 14),
-              _categoryChips(),
-              const SizedBox(height: 16),
               _energyTradeEntryCard(context),
               const SizedBox(height: 12),
               _rfqEntryCard(context),

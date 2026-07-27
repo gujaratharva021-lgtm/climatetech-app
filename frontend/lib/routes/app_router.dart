@@ -19,6 +19,8 @@ import '../screens/energy_trade/my_commodity_listings_screen.dart';
 import '../screens/energy_trade/post_commodity_listing_screen.dart';
 import '../screens/forecast/forecast_screen.dart';
 import '../screens/insights/insights_screen.dart';
+import '../screens/logistics_browse_screen.dart';
+import '../screens/logistics_my_bookings_screen.dart';
 import '../screens/map/map_screen.dart';
 import '../screens/marketplace/become_seller_screen.dart';
 import '../screens/marketplace/listing_detail_screen.dart';
@@ -79,6 +81,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/carbon', builder: (context, state) => const CarbonScreen()),
       GoRoute(path: '/forecast', builder: (context, state) => const ForecastScreen()),
       GoRoute(path: '/insights', builder: (context, state) => const InsightsScreen()),
+      GoRoute(path: '/logistics', builder: (context, state) => const LogisticsBrowseScreen()),
+      GoRoute(path: '/logistics/my-bookings', builder: (context, state) => const LogisticsMyBookingsScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
       GoRoute(path: '/alerts', builder: (context, state) => const AlertsScreen()),
       GoRoute(path: '/marketplace', builder: (context, state) => const MarketplaceHomeScreen()),
@@ -183,4 +187,6 @@ class _RouteNotFoundScreen extends StatelessWidget {
     );
   }
 }
+
+
 

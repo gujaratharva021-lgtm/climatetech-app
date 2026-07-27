@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,7 +8,7 @@ import '../../models/listing_model.dart';
 import '../../providers/marketplace_provider.dart';
 
 /// Listings at or above this price show a purely informational "EMI
-/// available" note â€” no calculation or actual EMI processing, just a nudge
+/// available" note — no calculation or actual EMI processing, just a nudge
 /// to negotiate financing directly with the seller.
 const double _emiEligiblePrice = 3000;
 
@@ -95,7 +95,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
     final waNumber = waPhoneDigits(phone);
     if (waNumber.isEmpty) {
       // The raw phone had non-digit characters only (e.g. a garbage value
-      // like "N/A") â€” contactPhone.isEmpty already gates the button for a
+      // like "N/A") — contactPhone.isEmpty already gates the button for a
       // genuinely empty phone, but this can still slip past that check.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -126,7 +126,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
               child: CircularProgressIndicator(color: DarkPalette.leafGreen))
           // _detail == null is included alongside _error != null so a
           // future change to the load/error state machine can't leave this
-          // branch reachable with nothing to render â€” falls back to the
+          // branch reachable with nothing to render — falls back to the
           // same error state (with its own retry button) instead of
           // crashing on a forced unwrap.
           : (_error != null || _detail == null)
@@ -208,7 +208,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'â‚¹${listing.price.toStringAsFixed(0)}',
+                  '₹${listing.price.toStringAsFixed(0)}',
                   style: const TextStyle(
                       color: DarkPalette.leafGreen,
                       fontSize: 24,
@@ -223,7 +223,7 @@ class _ListingDetailScreenState extends ConsumerState<ListingDetailScreen> {
                           size: 13, color: DarkPalette.textSecondary),
                       SizedBox(width: 5),
                       Text(
-                        'EMI available â€” contact seller for details',
+                        'EMI available — contact seller for details',
                         style: TextStyle(
                             color: DarkPalette.textSecondary, fontSize: 11.5),
                       ),

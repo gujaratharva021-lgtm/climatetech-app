@@ -59,10 +59,11 @@ func (s *NewsService) GetClimateNews(page int) ([]NewsArticle, error) {
 	// A tightly-scoped OR query keeps results on-topic (environment/climate)
 	// rather than pulling in generic "green"-adjacent business or politics
 	// coverage that a looser query would match.
-	query := `(environment OR "climate change" OR "renewable energy" OR pollution OR "global warming" OR sustainability OR "carbon emissions" OR biodiversity OR conservation)`
+query := `("climate change" OR "global warming" OR "climate crisis" OR "renewable energy" OR "clean energy" OR "carbon emissions" OR "carbon footprint" OR "climate policy" OR "extreme weather" OR "climate action" OR "fossil fuels" OR "climate summit" OR "air pollution" OR "climate disaster")`
 
 	params := url.Values{}
 	params.Set("q", query)
+	params.Set("searchIn", "title,description")
 	params.Set("language", "en")
 	params.Set("sortBy", "publishedAt")
 	params.Set("pageSize", "20")
