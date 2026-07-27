@@ -58,7 +58,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	priceIndexHandler := handlers.NewPriceIndexHandler(priceIndexService)
 	aiHandler := handlers.NewAIHandler(geminiService, priceIndexService)
 	financingHandler := handlers.NewFinancingHandler()
-        inspectionHandler := handlers.NewInspectionHandler()
+	inspectionHandler := handlers.NewInspectionHandler()
 	carbonCertHandler := handlers.NewCarbonCertificateHandler()
 	newsHandler := handlers.NewNewsHandler(newsService)
 	challengeHandler := handlers.NewChallengeHandler(geminiService)
@@ -67,6 +67,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	adminNewsHandler := handlers.NewAdminNewsHandler()
 	adminNotificationHandler := handlers.NewAdminNotificationHandler(fcmService)
 	adminAnalyticsHandler := handlers.NewAdminAnalyticsHandler()
+	kycHandler := handlers.NewKYCHandler()
+	logisticsHandler := handlers.NewLogisticsHandler()
 
 	// /health verifies the app's actual dependencies (Postgres, Redis), not
 	// just that the process is running — a static 200 would let an
@@ -96,6 +98,29 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			users.PUT("/profile", userHandler.UpdateProfile)
 			users.PUT("/change-password", middleware.RateLimit("change-password", 10, time.Minute), userHandler.ChangePassword)
 			users.PUT("/fcm-token", userHandler.UpdateFCMToken)
+		}
+
+		kyc := v1.Group("/kyc")
+		kyc.Use(middleware.AuthRequired(cfg))
+		{
+			kyc.POST("/submit", middleware.RateLimit("kyc-submit", 10, time.Minute), kycHandler.SubmitKYC)
+			kyc.GET("/me", kycHandler.GetMyKYC)
+		}
+
+		logistics := v1.Group("/logistics")
+		logistics.Use(middleware.AuthRequired(cfg))
+		{
+			logistics.POST("/vehicles", logisticsHandler.CreateVehicle)
+			logistics.GET("/vehicles", logisticsHandler.BrowseVehicles)
+			logistics.GET("/vehicles/:id", logisticsHandler.GetVehicle)
+			logistics.PUT("/vehicles/:id", logisticsHandler.UpdateVehicle)
+			logistics.DELETE("/vehicles/:id", logisticsHandler.DeleteVehicle)
+			logistics.GET("/my-vehicles", logisticsHandler.GetMyVehicles)
+
+			logistics.POST("/bookings", logisticsHandler.CreateBooking)
+			logistics.GET("/bookings/:id", logisticsHandler.GetBooking)
+			logistics.PUT("/bookings/:id/status", logisticsHandler.UpdateBookingStatus)
+			logistics.GET("/my-bookings", logisticsHandler.GetMyBookings)
 		}
 
 		climate := v1.Group("/climate")
@@ -190,13 +215,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			marketplace.GET("/my-financing", financingHandler.GetMyFinancingRequests)
 			marketplace.GET("/orders/:id/financing", financingHandler.GetFinancingForOrder)
 
-                        marketplace.POST("/orders/:id/inspection", inspectionHandler.CreateInspectionRequest)
-                        marketplace.GET("/inspections/:id", inspectionHandler.GetInspectionRequest)
-                        marketplace.PUT("/inspections/:id/schedule", inspectionHandler.ScheduleInspection)
-                        marketplace.PUT("/inspections/:id/complete", inspectionHandler.CompleteInspection)
-                        marketplace.PUT("/inspections/:id/cancel", inspectionHandler.CancelInspection)
-                        marketplace.GET("/my-inspections", inspectionHandler.GetMyInspections)
-                        marketplace.GET("/inspector/assigned", inspectionHandler.GetAssignedInspections)
+			marketplace.POST("/orders/:id/inspection", inspectionHandler.CreateInspectionRequest)
+			marketplace.GET("/inspections/:id", inspectionHandler.GetInspectionRequest)
+			marketplace.PUT("/inspections/:id/schedule", inspectionHandler.ScheduleInspection)
+			marketplace.PUT("/inspections/:id/complete", inspectionHandler.CompleteInspection)
+			marketplace.PUT("/inspections/:id/cancel", inspectionHandler.CancelInspection)
+			marketplace.GET("/my-inspections", inspectionHandler.GetMyInspections)
+			marketplace.GET("/inspector/assigned", inspectionHandler.GetAssignedInspections)
 
 			marketplace.POST("/carbon-certificates", carbonCertHandler.CreateCertificate)
 			marketplace.PUT("/carbon-certificates/:id/attach-listing", carbonCertHandler.AttachToListing)
@@ -224,8 +249,8 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 				marketplaceAdmin.POST("/price-index/snapshot", priceIndexHandler.RecordSnapshotAdmin)
 				marketplaceAdmin.GET("/financing", financingHandler.ListAllFinancingAdmin)
 				marketplaceAdmin.PUT("/financing/:id", financingHandler.UpdateFinancingStatusAdmin)
-                                marketplaceAdmin.GET("/inspections", inspectionHandler.ListAllInspectionsAdmin)
-                                marketplaceAdmin.PUT("/inspections/:id/assign", inspectionHandler.AssignInspectorAdmin)
+				marketplaceAdmin.GET("/inspections", inspectionHandler.ListAllInspectionsAdmin)
+				marketplaceAdmin.PUT("/inspections/:id/assign", inspectionHandler.AssignInspectorAdmin)
 				marketplaceAdmin.GET("/carbon-certificates", carbonCertHandler.ListAllCertificatesAdmin)
 			}
 		}
@@ -277,6 +302,15 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			admin.POST("/notifications/broadcast", adminNotificationHandler.Broadcast)
 
 			admin.GET("/carbon-overview", adminAnalyticsHandler.GetCarbonOverview)
+
+			admin.GET("/analytics/platform-overview", adminAnalyticsHandler.GetPlatformOverview)
+			admin.GET("/analytics/marketplace-overview", adminAnalyticsHandler.GetMarketplaceOverview)
+			admin.GET("/analytics/logistics-overview", adminAnalyticsHandler.GetLogisticsOverview)
+			admin.GET("/analytics/order-trends", adminAnalyticsHandler.GetOrderTrends)
+
+			admin.GET("/kyc/pending", kycHandler.ListPendingKYC)
+			admin.PUT("/kyc/:id/approve", kycHandler.ApproveKYC)
+			admin.PUT("/kyc/:id/reject", kycHandler.RejectKYC)
 		}
 	}
 }
