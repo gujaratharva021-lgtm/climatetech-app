@@ -83,7 +83,10 @@ class MarketplaceService {
     required double price,
     required String category,
     List<String> imageUrls = const [],
-    String condition = 'used',
+    required double quantity,
+    required String unit,
+    double minOrderQty = 0,
+    String? grade,
     String? location,
   }) async {
     try {
@@ -93,7 +96,10 @@ class MarketplaceService {
         'price': price,
         'category': category,
         'image_urls': imageUrls,
-        'condition': condition,
+        'quantity': quantity,
+        'unit': unit,
+        'min_order_qty': minOrderQty,
+        if (grade != null && grade.isNotEmpty) 'grade': grade,
         if (location != null && location.isNotEmpty) 'location': location,
       });
       return ListingModel.fromJson(response.data['data']);
@@ -128,3 +134,5 @@ class MarketplaceService {
     return e.message ?? 'Could not reach the marketplace.';
   }
 }
+
+

@@ -1,10 +1,11 @@
 const List<String> marketplaceCategories = [
-  'Electronics',
-  'Furniture',
-  'Vehicles',
-  'Solar & Energy',
-  'Garden & Compost',
-  'Clothing',
+  'Coal',
+  'Biomass',
+  'Coke',
+  'Carbon Credit',
+  'Sponge Iron',
+  'Steel Scrap',
+  'Cement',
   'Other',
 ];
 
@@ -16,7 +17,10 @@ class ListingModel {
   final double price;
   final String category;
   final List<String> imageUrls;
-  final String condition;
+  final double quantity;
+  final String unit;
+  final double minOrderQty;
+  final String grade;
   final String location;
   final bool isActive;
   final DateTime createdAt;
@@ -31,7 +35,10 @@ class ListingModel {
     required this.price,
     required this.category,
     required this.imageUrls,
-    required this.condition,
+    required this.quantity,
+    required this.unit,
+    required this.minOrderQty,
+    required this.grade,
     required this.location,
     required this.isActive,
     required this.createdAt,
@@ -49,7 +56,10 @@ class ListingModel {
       price: (json['price'] as num?)?.toDouble() ?? 0,
       category: json['category'] as String? ?? '',
       imageUrls: images.whereType<String>().toList(),
-      condition: json['condition'] as String? ?? 'used',
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
+      unit: json['unit'] as String? ?? 'unit',
+      minOrderQty: (json['min_order_qty'] as num?)?.toDouble() ?? 0,
+      grade: json['grade'] as String? ?? '',
       location: json['location'] as String? ?? '',
       isActive: json['is_active'] as bool? ?? true,
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
@@ -95,7 +105,6 @@ class ListingDetailModel {
       verified: sellerJson['verified'] as bool? ?? false,
       contactName: contactJson['name'] as String? ?? '',
       contactEmail: contactJson['email'] as String? ?? '',
-      // Empty for sellers who applied before the phone field existed.
       contactPhone: contactJson['phone'] as String? ?? '',
     );
   }

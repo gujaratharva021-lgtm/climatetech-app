@@ -7,6 +7,7 @@ import '../../core/theme/dark_palette.dart';
 import '../../models/commodity_listing_model.dart';
 import '../../providers/energy_trade_provider.dart';
 import '../marketplace/listing_detail_screen.dart' show waPhoneDigits;
+import '../../providers/order_provider.dart';
 
 class CommodityListingDetailScreen extends ConsumerStatefulWidget {
   final String listingId;
@@ -271,35 +272,97 @@ class _CommodityListingDetailScreenState extends ConsumerState<CommodityListingD
                   ],
                 ),
                 const SizedBox(height: 10),
-                // RFQ (request-for-quote / reverse auction) and direct
-                // ordering already exist on the backend, but their screens
-                // aren't built yet — this is a clearly-labeled placeholder
-                // rather than a silently missing feature, so it's obvious
-                // what's coming next instead of looking like an oversight.
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ElevatedButton(
+                  onPressed: () => _showPlaceOrderDialog(context, listing),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: DarkPalette.leafGreen,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size.fromHeight(48),
                   ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('RFQ & direct ordering coming soon',
-                          style: TextStyle(color: DarkPalette.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                      SizedBox(height: 4),
-                      Text('For now, use Call or WhatsApp to negotiate directly with the seller.',
-                          style: TextStyle(color: DarkPalette.textMuted, fontSize: 11.5, height: 1.4)),
-                    ],
-                  ),
+                  child: const Text('Place Order'),
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showPlaceOrderDialog(BuildContext context, CommodityListingModel listing) async {
+    final quantityController = TextEditingController();
+    final addressController = TextEditingController();
+    bool submitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            backgroundColor: DarkPalette.navyCard,
+            title: const Text('Place Order', style: TextStyle(color: DarkPalette.textPrimary)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: DarkPalette.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: 'Quantity (${listing.unit})',
+                    labelStyle: const TextStyle(color: DarkPalette.textMuted),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: addressController,
+                  maxLines: 2,
+                  style: const TextStyle(color: DarkPalette.textPrimary),
+                  decoration: const InputDecoration(
+                    labelText: 'Delivery address',
+                    labelStyle: TextStyle(color: DarkPalette.textMuted),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: submitting
+                    ? null
+                    : () async {
+                        final qty = double.tryParse(quantityController.text.trim());
+                        final address = addressController.text.trim();
+                        if (qty == null || qty <= 0 || address.isEmpty) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(content: Text('Enter a valid quantity and delivery address')),
+                          );
+                          return;
+                        }
+                        setDialogState(() => submitting = true);
+                        try {
+                          final order = await ref.read(orderServiceProvider).createOrderFromListing(
+                                listingId: listing.id,
+                                quantity: qty,
+                                deliveryAddress: address,
+                              );
+                          if (!mounted) return;
+                          Navigator.pop(dialogContext);
+                          context.push('/orders/${order.id}');
+                        } catch (e) {
+                          setDialogState(() => submitting = false);
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.toString())));
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(backgroundColor: DarkPalette.leafGreen, foregroundColor: Colors.black),
+                child: const Text('Place Order'),
+              ),
+            ],
+          );
+        });
+      },
     );
   }
 

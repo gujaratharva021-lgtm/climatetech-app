@@ -17,7 +17,11 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(marketplaceProvider.notifier).loadMyListings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(marketplaceProvider.notifier).loadMyListings();
+      }
+    });
   }
 
   Future<void> _delete(ListingModel listing) async {
@@ -165,3 +169,4 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
     );
   }
 }
+

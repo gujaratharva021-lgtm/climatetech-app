@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,8 +24,11 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
   final _priceController = TextEditingController();
   final _locationController = TextEditingController();
 
+  final _quantityController = TextEditingController();
+  final _minOrderQtyController = TextEditingController();
+  final _gradeController = TextEditingController();
   String _category = marketplaceCategories.first;
-  String _condition = 'used';
+  String _unit = 'ton';
   List<String> _imageUrls = [];
   String? _imageUrlsError;
   bool _submitting = false;
@@ -36,6 +39,9 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _quantityController.dispose();
+    _minOrderQtyController.dispose();
+    _gradeController.dispose();
     _locationController.dispose();
     super.dispose();
   }
@@ -61,7 +67,10 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
           price: price,
           category: _category,
           imageUrls: _imageUrls,
-          condition: _condition,
+          quantity: double.tryParse(_quantityController.text.trim()) ?? 0,
+          unit: _unit,
+          minOrderQty: double.tryParse(_minOrderQtyController.text.trim()) ?? 0,
+          grade: _gradeController.text.trim(),
           location: _locationController.text.trim(),
         );
 
@@ -151,7 +160,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
               if (!isPending)
                 CustomButton(
                   label: isRejected ? 'Reapply as a seller' : 'Become a seller',
-                  // Same destination either way — the backend has no
+                  // Same destination either way â€” the backend has no
                   // separate reapplication endpoint (submitting again while
                   // a rejected profile exists is rejected with 409 "you
                   // already have a seller profile"), so this at least lets
@@ -189,7 +198,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
                 icon: Icons.notes_rounded,
                 controller: _descriptionController),
             const SizedBox(height: 14),
-            _label('Price (₹)'),
+            _label('Price per unit (â‚¹)'),
             DarkTextField(
               hint: '0',
               icon: Icons.currency_rupee,
@@ -207,12 +216,58 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
             _dropdown(_category, marketplaceCategories,
                 (v) => setState(() => _category = v ?? _category)),
             const SizedBox(height: 14),
-            _label('Condition'),
-            _dropdown(
-              _condition,
-              const ['new', 'used'],
-              (v) => setState(() => _condition = v ?? _condition),
-              labelBuilder: (v) => v == 'new' ? 'New' : 'Used',
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label('Quantity'),
+                      DarkTextField(
+                        hint: '0',
+                        icon: Icons.scale_outlined,
+                        controller: _quantityController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          final n = double.tryParse(v ?? '');
+                          if (n == null || n <= 0) return 'Required';
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _label('Unit'),
+                      _dropdown(
+                        _unit,
+                        const ['ton', 'kg', 'quintal', 'MT', 'unit'],
+                        (v) => setState(() => _unit = v ?? _unit),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _label('Minimum Order Quantity'),
+            DarkTextField(
+              hint: 'e.g. 10',
+              icon: Icons.inventory_2_outlined,
+              controller: _minOrderQtyController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 14),
+            _label('Grade (optional)'),
+            DarkTextField(
+              hint: 'e.g. Grade A, G-9',
+              icon: Icons.workspace_premium_outlined,
+              controller: _gradeController,
             ),
             const SizedBox(height: 14),
             _label('Location (optional)'),
@@ -290,3 +345,7 @@ class _PostListingScreenState extends ConsumerState<PostListingScreen> {
     );
   }
 }
+
+
+
+
