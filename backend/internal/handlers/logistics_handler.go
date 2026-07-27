@@ -310,6 +310,7 @@ func (h *LogisticsHandler) CreateBooking(c *gin.Context) {
 
 var errVehicleUnavailable = errors.New("vehicle unavailable")
 var errInvalidScheduledPickup = errors.New("invalid scheduled pickup")
+var errNotBookingParty = errors.New("not a party to this booking")
 
 func (h *LogisticsHandler) GetMyBookings(c *gin.Context) {
 	userID, ok := currentUserID(c)
@@ -353,6 +354,12 @@ type UpdateBookingStatusRequest struct {
 }
 
 func (h *LogisticsHandler) UpdateBookingStatus(c *gin.Context) {
+	userID, ok := currentUserID(c)
+	if !ok {
+		utils.Fail(c, http.StatusUnauthorized, "unauthenticated", nil)
+		return
+	}
+
 	bookingID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		utils.Fail(c, http.StatusBadRequest, "invalid booking id", err)
@@ -367,8 +374,14 @@ func (h *LogisticsHandler) UpdateBookingStatus(c *gin.Context) {
 
 	var booking models.Booking
 	txErr := database.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.First(&booking, "id = ?", bookingID).Error; err != nil {
+		if err := tx.Preload("Vehicle").First(&booking, "id = ?", bookingID).Error; err != nil {
 			return err
+		}
+
+		isBooker := booking.BookedByUserID == userID
+		isVehicleOwner := booking.Vehicle != nil && booking.Vehicle.OwnerID == userID
+		if !isBooker && !isVehicleOwner {
+			return errNotBookingParty
 		}
 
 		booking.Status = models.BookingStatus(req.Status)
@@ -384,11 +397,14 @@ func (h *LogisticsHandler) UpdateBookingStatus(c *gin.Context) {
 	})
 
 	if txErr != nil {
-		if errors.Is(txErr, gorm.ErrRecordNotFound) {
+		switch {
+		case errors.Is(txErr, gorm.ErrRecordNotFound):
 			utils.Fail(c, http.StatusNotFound, "booking not found", nil)
-			return
+		case errors.Is(txErr, errNotBookingParty):
+			utils.Fail(c, http.StatusForbidden, "you are not a party to this booking", nil)
+		default:
+			utils.Fail(c, http.StatusInternalServerError, "failed to update booking", txErr)
 		}
-		utils.Fail(c, http.StatusInternalServerError, "failed to update booking", txErr)
 		return
 	}
 
