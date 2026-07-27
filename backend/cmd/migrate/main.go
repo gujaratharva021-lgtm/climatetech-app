@@ -55,6 +55,7 @@ func main() {
 		&models.FinancingRequest{},
 		&models.CarbonCreditCertificate{},
 		&models.CreditRetirement{},
+		&models.KYCVerification{},
 		&models.Challenge{},
 		&models.UserChallenge{},
 		&models.ChallengeCheckInLog{},

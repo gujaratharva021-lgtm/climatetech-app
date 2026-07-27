@@ -25,6 +25,11 @@ func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
+// normalizePhone trims whitespace from a phone number before it's used for lookup, uniqueness-checking, or storage.
+func normalizePhone(phone string) string {
+	return strings.TrimSpace(phone)
+}
+
 type AuthHandler struct {
 	cfg *config.Config
 }
@@ -39,13 +44,13 @@ func refreshTokenKey(userID uuid.UUID) string {
 
 type RegisterRequest struct {
 	Name     string `json:"name" binding:"required,min=2,max=150"`
-	Email    string `json:"email" binding:"required,email"`
+	Phone    string `json:"phone" binding:"required,min=10,max=15"`
 	Password string `json:"password" binding:"required,min=8,max=72"`
 	Role     string `json:"role" binding:"omitempty,oneof=user organization"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	Phone    string `json:"phone" binding:"required,min=10,max=15"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -66,7 +71,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid request payload", err)
 		return
 	}
-	req.Email = normalizeEmail(req.Email)
+	req.Phone = normalizePhone(req.Phone)
 
 	// Case-insensitive lookup (LOWER(email) rather than a plain equality
 	// check) so this correctly finds an existing account regardless of the
@@ -74,8 +79,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// stored lowercase (below), but pre-existing rows may still have mixed
 	// case, and this must keep matching those without a data migration.
 	var existing models.User
-	if err := database.DB.Where("LOWER(email) = ?", req.Email).First(&existing).Error; err == nil {
-		utils.Fail(c, http.StatusConflict, "an account with this email already exists", nil)
+	if err := database.DB.Where("phone = ?", req.Phone).First(&existing).Error; err == nil {
+		utils.Fail(c, http.StatusConflict, "an account with this phone number already exists", nil)
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.Fail(c, http.StatusInternalServerError, "failed to check existing user", err)
@@ -95,7 +100,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	user := models.User{
 		Name:         req.Name,
-		Email:        req.Email,
+		Phone:        req.Phone,
 		PasswordHash: hashedPassword,
 		Role:         role,
 	}
@@ -106,7 +111,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		// source of truth for that race, so translate its violation into the
 		// same 409 the pre-check gives in the common case, instead of a 500.
 		if utils.IsUniqueViolation(err) {
-			utils.Fail(c, http.StatusConflict, "an account with this email already exists", nil)
+			utils.Fail(c, http.StatusConflict, "an account with this phone number already exists", nil)
 			return
 		}
 		utils.Fail(c, http.StatusInternalServerError, "failed to create user", err)
@@ -129,14 +134,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		utils.Fail(c, http.StatusBadRequest, "invalid request payload", err)
 		return
 	}
-	req.Email = normalizeEmail(req.Email)
+	req.Phone = normalizePhone(req.Phone)
 
 	// Same case-insensitive lookup as Register, so a user who registered
 	// with mixed-case can still log in typing any case variant.
 	var user models.User
-	if err := database.DB.Where("LOWER(email) = ?", req.Email).First(&user).Error; err != nil {
+	if err := database.DB.Where("phone = ?", req.Phone).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.Fail(c, http.StatusUnauthorized, "invalid email or password", nil)
+			utils.Fail(c, http.StatusUnauthorized, "invalid phone number or password", nil)
 			return
 		}
 		utils.Fail(c, http.StatusInternalServerError, "failed to look up user", err)
@@ -149,7 +154,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// IsActive first would let anyone probe which emails belong to
 	// deactivated accounts without knowing their password.
 	if !utils.CheckPasswordHash(req.Password, user.PasswordHash) {
-		utils.Fail(c, http.StatusUnauthorized, "invalid email or password", nil)
+		utils.Fail(c, http.StatusUnauthorized, "invalid phone number or password", nil)
 		return
 	}
 

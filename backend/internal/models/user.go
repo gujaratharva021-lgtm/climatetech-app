@@ -18,14 +18,20 @@ const (
 type User struct {
 	ID           uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name         string    `gorm:"type:varchar(150);not null" json:"name"`
-	Email        string    `gorm:"type:varchar(150);uniqueIndex;not null" json:"email"`
+	Email        string    `gorm:"type:varchar(150)" json:"email,omitempty"`
 	PasswordHash string    `gorm:"type:text;not null" json:"-"`
 	Role         Role      `gorm:"type:varchar(20);not null;default:'user'" json:"role"`
 	Avatar       string    `gorm:"type:text" json:"avatar,omitempty"`
-	Phone        string    `gorm:"type:varchar(20)" json:"phone,omitempty"`
+	Phone        string    `gorm:"type:varchar(20);uniqueIndex;not null" json:"phone"`
 	IsActive     bool      `gorm:"default:true" json:"is_active"`
 	FCMToken     string    `gorm:"type:text" json:"-"`
 	TotalPoints  int       `gorm:"not null;default:0" json:"-"`
+	// KYCStatus is a denormalized copy of the user's latest KYC verification
+	// outcome (kept in sync by the KYC handler on submit/approve/reject) so
+	// gating checks — e.g. "must be verified to apply as seller" — can read
+	// it directly off the users row instead of joining kyc_verifications on
+	// every request.
+	KYCStatus KYCStatus `gorm:"type:varchar(20);not null;default:'not_submitted'" json:"kyc_status"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -51,6 +57,7 @@ type UserResponse struct {
 	Avatar      string    `json:"avatar,omitempty"`
 	TotalPoints int       `json:"total_points"`
 	Badges      []string  `json:"badges"`
+	KYCStatus   KYCStatus `json:"kyc_status"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -63,6 +70,7 @@ func (u *User) ToResponse() UserResponse {
 		Avatar:      u.Avatar,
 		TotalPoints: u.TotalPoints,
 		Badges:      GetBadges(u.TotalPoints),
+		KYCStatus:   u.KYCStatus,
 		CreatedAt:   u.CreatedAt,
 	}
 }

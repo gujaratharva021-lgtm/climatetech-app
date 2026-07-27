@@ -66,6 +66,7 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 	adminNewsHandler := handlers.NewAdminNewsHandler()
 	adminNotificationHandler := handlers.NewAdminNotificationHandler(fcmService)
 	adminAnalyticsHandler := handlers.NewAdminAnalyticsHandler()
+	kycHandler := handlers.NewKYCHandler()
 
 	// /health verifies the app's actual dependencies (Postgres, Redis), not
 	// just that the process is running — a static 200 would let an
@@ -95,6 +96,13 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			users.PUT("/profile", userHandler.UpdateProfile)
 			users.PUT("/change-password", middleware.RateLimit("change-password", 10, time.Minute), userHandler.ChangePassword)
 			users.PUT("/fcm-token", userHandler.UpdateFCMToken)
+		}
+
+		kyc := v1.Group("/kyc")
+		kyc.Use(middleware.AuthRequired(cfg))
+		{
+			kyc.POST("/submit", middleware.RateLimit("kyc-submit", 10, time.Minute), kycHandler.SubmitKYC)
+			kyc.GET("/me", kycHandler.GetMyKYC)
 		}
 
 		climate := v1.Group("/climate")
@@ -266,6 +274,10 @@ func RegisterRoutes(router *gin.Engine, cfg *config.Config) {
 			admin.POST("/notifications/broadcast", adminNotificationHandler.Broadcast)
 
 			admin.GET("/carbon-overview", adminAnalyticsHandler.GetCarbonOverview)
+
+		admin.GET("/kyc/pending", kycHandler.ListPendingKYC)
+		admin.PUT("/kyc/:id/approve", kycHandler.ApproveKYC)
+		admin.PUT("/kyc/:id/reject", kycHandler.RejectKYC)
 		}
 	}
 }
